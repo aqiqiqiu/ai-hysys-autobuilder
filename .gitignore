@@ -1,0 +1,33 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+outputs/
+*.hsc
+*.bak
+.DS_Store
+# 输出目录
+outputs/
+real_output/
+final_submission/
+test_output/
+dry_output/
+*.json
+*.log
+*.hsc
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# IDE 配置
+.vscode/
+.idea/
