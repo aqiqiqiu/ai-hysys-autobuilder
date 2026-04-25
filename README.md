@@ -1,78 +1,158 @@
-# AI 自动反应器选型 + Aspen HYSYS V15 自动化建模系统
+# AI HYSYS Autobuilder
 
-本项目提供一套可直接运行、可提交 GitHub 的工程化实现，覆盖以下 5 大模块：
+AI 驱动的 Aspen HYSYS 反应器智能建模系统。根据自然语言描述自动选择反应器类型（Conversion / Equilibrium / Gibbs），并生成模拟配置 JSON。
 
-- 自然语言反应器选型（输出 JSON）
-- HYSYS COM 连接
-- 三种反应器创建：Conversion / Equilibrium / Gibbs
-- 参数自动配置
-- 运行求解 + 结果读取
+## 项目分支
 
-并内置 3 个考核场景，一键运行：
+- **dryrun** – 离线选型演示（仅生成 JSON，不连接 HYSYS），适合快速验证 AI 逻辑。
+- **manual-param** – 混合模式（手动搭建 + Python 参数控制），用于权限受限环境。
 
-- 场景1：甲烷蒸汽重整 → Gibbs / Equilibrium（自动判断）
-- 场景2：乙烷裂解，转化率 60% → Conversion
-- 场景3：水煤浆气化 → Gibbs
+## 功能特点
 
-## 环境要求
+- 🤖 基于大模型（阿里云百炼）的自然语言理解，自动提取反应器类型、温度、压力、转化率。
+- 📄 输出结构化 JSON（选型结果 + 建议参数）。
+- 🖥️ 交互式命令行 – 用户输入任意反应描述，实时返回选型结果。
+- 🔌 预留 HYSYS COM 接口，可扩展为全自动模拟（需适当权限）。
 
-- Windows 10/11
-- Python 3.10+（建议 3.11）
-- Aspen HYSYS V15 已安装（可选：没有 HYSYS 时可用 `--dry-run` 演示全流程）
+## 安装与配置
 
-## 安装
+### 环境要求
+- Python 3.8+
+- pip
 
-在项目根目录执行：
-
+### 安装依赖
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+# 使用清华镜像
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 或使用阿里云镜像
+pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 ```
 
-如果要安装为可复用包（可选）：
 
-```bash
-pip install -e .
+
+`requirements.txt` 内容：
+
+text
+
+```
+pywin32
+openai
 ```
 
-## 一键运行（三场景）
+### 配置 API Key
 
-### 真实连接 HYSYS（需要已安装 HYSYS）
+系统使用阿里云百炼 API（兼容 OpenAI）。设置环境变量：
 
-```bash
-python -m ai_hysys_autobuilder --run-all --visible
+bash
+
+```
+# Windows PowerShell
+$env:DASHSCOPE_API_KEY = "sk-你的Key"
+
+# Windows CMD
+set DASHSCOPE_API_KEY=sk-你的Key
+
+# Linux / Mac
+export DASHSCOPE_API_KEY="sk-你的Key"
 ```
 
-### 演示模式（不依赖 HYSYS，可录屏）
 
-```bash
-python -m ai_hysys_autobuilder --run-all --dry-run
+
+## 快速开始
+
+### 1. 交互式选型（推荐）
+
+bash
+
+```
+cd src/ai_hysys_autobuilder
+python interactive_selector.py
 ```
 
-## 运行参数
 
-- `--run-all`：顺序运行 3 个场景
-- `--scenario {1,2,3}`：只运行指定场景
-- `--dry-run`：不调用 COM，仅输出将要执行的建模步骤与 JSON（可用于 CI/演示）
-- `--visible`：让 HYSYS 窗口可见（真实 COM 时有效）
-- `--save-dir <path>`：保存 `.hsc` 的目录（真实 COM 时有效）
 
-## 输出
+输入自然语言描述（例如："乙烷裂解，转化率60%"），按回车即可获得选型结果，并保存到 `selection_result.json`。
 
-每个场景会输出：
+### 2. 批量 dry-run 演示（三个预设场景）
 
-- `selection.json`：自然语言选型 JSON
-- `actions.log`：建模步骤与异常日志
-- `results.json`：求解后读取的关键结果（若真实 HYSYS 可用）
+bash
 
-## 重要说明（工程边界）
+```
+cd src/ai_hysys_autobuilder
+python runner.py --run-all --dry-run --out ../../test_output
+```
 
-HYSYS 的 COM API 在不同版本/安装环境中 ProgID、对象模型可能存在差异。本项目采取：
 
-- **晚绑定（late-binding）**：尽量不依赖类型库
-- **强异常信息**：失败时输出清晰的对象路径与建议
-- **dry-run**：即使无 HYSYS 也可完整演示端到端流程
 
-你可以在 `src/ai_hysys_autobuilder/hysys_com.py` 中调整 `prog_id_candidates` 以适配你的 HYSYS 安装。
+输出 `test_output/` 目录包含每个场景的选型 JSON 和汇总文件。**无需 HYSYS 环境**。
 
+
+
+### 3. 真实 HYSYS 联动（需环境权限）
+
+bash
+
+```
+python runner.py --run-all --visible --out real_output
+```
+
+
+
+**前提：HYSYS 已安装且 COM 权限允许创建单元操作（否则会失败）。**
+
+
+
+
+
+
+
+## 项目结构
+
+text
+
+```
+src/ai_hysys_autobuilder/
+├── __init__.py
+├── __main__.py
+├── hysys_com.py          # COM 客户端（真实 + dry-run mock）
+├── logging_utils.py
+├── models.py             # 数据模型
+├── parameter_config.py
+├── reactor_builders.py
+├── reactor_selection.py  # 大模型选型核心（LLM 版）
+├── runner.py             # 批量运行入口
+└── interactive_selector.py # 交互式单输入选型
+```
+
+
+
+## 示例输出
+
+交互式输入：
+
+> "我需要模拟甲烷蒸汽重整。进料是甲烷和水蒸气（摩尔比 1:2.7），炉温温度 710°C，压力 13.5 bar..."
+
+输出 JSON（部分）：
+
+json
+
+```
+{
+  "reactor_type": "Gibbs",
+  "confidence": 0.65,
+  "rationale": ["用户未给出转化率...", "反应路径复杂..."],
+  "suggested_hysys": {
+    "temperature_c": 710.0,
+    "pressure_kpa": 1350.0
+  }
+}
+```
+
+
+
+## 注意事项
+
+- 需要稳定的网络连接（调用云端大模型）。
+- 大模型 API 会产生费用（使用阿里云百炼免费额度可覆盖测试）。
+- 真实 HYSYS COM 调用可能受系统权限限制，建议先用 dry-run 验证逻辑。
