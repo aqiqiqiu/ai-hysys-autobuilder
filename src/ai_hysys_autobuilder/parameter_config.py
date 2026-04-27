@@ -62,17 +62,6 @@ class ParameterAutoConfigurator:
         ok = all(v.get("ok", True) for v in details.values() if isinstance(v, dict))
         return ConfigReport(ok=ok, details=details)
 
-    def configure_basis(self, *, case: Any, scenario: ScenarioSpec, selection: ReactorSelection) -> ConfigReport:
-        """
-        Configure only Simulation Basis (property package + components).
-        Some HYSYS installs refuse to create unit operations until basis is set.
-        """
-        details: Dict[str, Any] = {}
-        details["property_package"] = self._try_set_property_package(case, selection.suggested_hysys.get("property_package"))
-        details["components"] = self._try_set_components(case, scenario.components)
-        ok = all(v.get("ok", True) for v in details.values() if isinstance(v, dict))
-        return ConfigReport(ok=ok, details=details)
-
     # -----------------------------
     # Basis / package / components (best effort)
     # -----------------------------

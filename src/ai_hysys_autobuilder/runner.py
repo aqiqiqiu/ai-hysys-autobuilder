@@ -79,8 +79,9 @@ class AutoHysysBuilder:
                 scenario_id="1",
                 name="甲烷蒸汽重整",
                 description="Steam reforming of methane; equilibrium/multi-reaction system.",
-                input_text="我需要模拟甲烷蒸汽重整。进料是甲烷和水蒸气（摩尔比 1:2.7），炉温温度 710°C，压力 13.5 bar，进料温度520℃。主要反应：CH4 + H2O → CO + 3H2。请帮我计算出口组成。",
-
+                input_text="场景1：甲烷蒸汽重整 → Gibbs / Equilibrium（自动判断）",
+                temperature_c=850.0,
+                pressure_kpa=3000.0,
                 components=["CH4", "H2O", "CO", "CO2", "H2"],
                 property_package="Peng-Robinson",
             ),
@@ -88,7 +89,10 @@ class AutoHysysBuilder:
                 scenario_id="2",
                 name="乙烷裂解(转化率60%)",
                 description="Ethane cracking with specified conversion.",
-                input_text="请帮我模拟乙烷热裂解生产乙烯。进料纯乙烷 200 kmol/h，进料温度450°C，压力 2 atm。乙烷单程转化率约 60%。主要反应：C2H6 → C2H4 + H2。请帮我计算一下反应器的出口温度",
+                input_text="场景2：乙烷裂解，转化率60% → Conversion",
+                temperature_c=820.0,
+                pressure_kpa=150.0,
+                conversion_fraction=0.60,
                 components=["C2H6", "C2H4", "H2", "CH4"],
                 property_package="Peng-Robinson",
             ),
@@ -96,7 +100,9 @@ class AutoHysysBuilder:
                 scenario_id="3",
                 name="水煤浆气化",
                 description="Coal-water slurry gasification; complex multi-reaction equilibrium.",
-                input_text="我要模拟水煤浆的气化过程。进料为煤炭和水，流量80000Nm3/h,压力40bar，水煤浆进料浓度62wt%,进料温度80摄氏度，主要反应：C+H2O → CO+H2。 请帮我计算一下气化炉的温度、出口组成及CO的收率",
+                input_text="场景3：水煤浆气化 → Gibbs",
+                temperature_c=1200.0,
+                pressure_kpa=4000.0,
                 components=["H2O", "CO", "CO2", "H2", "CH4", "N2"],
                 property_package="Peng-Robinson",
             ),
@@ -120,11 +126,6 @@ class AutoHysysBuilder:
             app = self.hysys.connect()
             case = self.hysys.new_case(app)
             flowsheet = self.hysys.get_flowsheet(case)
-
-            # IMPORTANT: configure basis BEFORE adding unit operations.
-            # Many HYSYS COM installs deny Operations.Add(...) until property package/components are set.
-            basis_report = self.configurator.configure_basis(case=case, scenario=scenario, selection=selection)
-            self._write_json(out_dir / "basis_report.json", asdict(basis_report))
 
             handles = self.reactor_factory.create_reactor(
                 flowsheet, reactor_type=selection.reactor_type, name=f"R-{scenario.scenario_id}"
